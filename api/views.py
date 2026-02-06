@@ -106,24 +106,27 @@ def sync_json_to_database():
                 try:
                     # Get or create sensor
                     sensor, created = Sensor.objects.get_or_create(
-                        sensor_id=reading_data["name"],  # Use 'name' as sensor_id (e.g., "KP-002")
+                        sensor_id=reading_data["name"],
                         defaults={
                             "name": reading_data["name"],
-                            "location": reading_data["location"],
-                            "latitude": reading_data["latitude"],
-                            "longitude": reading_data["longitude"],
+                            "area": reading_data.get("location", ""),  
+                            "latitude": reading_data.get("latitude"),
+                            "longitude": reading_data.get("longitude"),
                             "is_active": True,
                         }
                     )
+
                     
                     if created:
                         print(f"   ➕ Created new sensor: {reading_data['name']}")
                     
-                    # Parse timestamp
                     timestamp = datetime.strptime(
-                        reading_data["timestamp"], 
+                        reading_data["timestamp"],
                         "%Y-%m-%d %H:%M:%S"
                     )
+
+                    if timezone.is_naive(timestamp):
+                        timestamp = timezone.make_aware(timestamp)
                     
                     # Create reading (use get_or_create to avoid duplicates)
                     reading, created = Reading.objects.get_or_create(
@@ -359,7 +362,7 @@ def manual_db_sync(request):
                     sensor_id=sensor_name,
                     defaults={
                         'name': sensor_name,
-                        'location': reading_data.get('location', ''),
+                        'area': reading_data.get('location', ''),
                         'latitude': reading_data.get('latitude'),
                         'longitude': reading_data.get('longitude'),
                         'is_active': True
@@ -930,6 +933,9 @@ def debug_simulation_files(request):
 #         'success': True,
 #         'message': 'Simulation started successfully'
 #     })
+
+
+@csrf_exempt
 def start_simulation(request):
     if simulation_state["running"]:
         return JsonResponse({

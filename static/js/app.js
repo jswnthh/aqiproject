@@ -1248,8 +1248,8 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchDashboardData();
     fetchSensorData();
 
-    // Poll for updates every 30 seconds
-    setInterval(fetchDashboardData, 30000);
+    // Poll for updates every 10 seconds
+    setInterval(fetchDashboardData, 10000);
 
     // console.log('Dashboard initialized successfully');
 });
