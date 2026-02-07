@@ -36,20 +36,15 @@ class Reading(models.Model):
         null=True,
         blank=True
     )
-
     timestamp = models.DateTimeField(default=timezone.now)
-
     temperature = models.FloatField(null=True, blank=True)
     humidity = models.FloatField(null=True, blank=True)
     air_quality = models.FloatField(null=True, blank=True)
-
     aqi_category = models.CharField(max_length=50, blank=True)
     aqi_color = models.CharField(max_length=20, blank=True)
-
     co_level = models.FloatField(null=True, blank=True)
     no_level = models.FloatField(null=True, blank=True)
     smoke = models.FloatField(null=True, blank=True)
-
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
 

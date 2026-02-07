@@ -615,19 +615,33 @@ async function fetchSensorData() {
     }
 }
 
-function updateSensor(sensors) {
-    const allSensorsFilter = document.getElementById('allSensorsFilter');
-    if (allSensorsFilter) {
-        // console.log("Updating sensor count");
-        const sensorCount = sensors.length;
-        // console.log('Sensor Count:', sensorCount);
-        allSensorsFilter.textContent = `ALL SENSORS (${sensorCount})`;
-    }
-}
+// 
+
+
+// function updateSensor(sensors) {
+//     const allSensorsFilter = document.getElementById('allSensorsFilter');
+//     if (allSensorsFilter) {
+//         const sensorCount = sensors.length;
+//         allSensorsFilter.textContent = `ALL SENSORS (${sensorCount})`;
+//     }
+// }
+
 
 // ============================================================================
 // ANALYTICS CHART
 // ============================================================================
+
+    // timestamp = models.DateTimeField(default=timezone.now)
+    // temperature = models.FloatField(null=True, blank=True)
+    // humidity = models.FloatField(null=True, blank=True)
+    // air_quality = models.FloatField(null=True, blank=True)
+    // aqi_category = models.CharField(max_length=50, blank=True)
+    // aqi_color = models.CharField(max_length=20, blank=True)
+    // co_level = models.FloatField(null=True, blank=True)
+    // no_level = models.FloatField(null=True, blank=True)
+    // smoke = models.FloatField(null=True, blank=True)
+    // latitude = models.FloatField(null=True, blank=True)
+    // longitude = models.FloatField(null=True, blank=True)
 
 function initAnalyticsChart() {
     const ctx = document.getElementById('analyticsChart');
@@ -637,37 +651,17 @@ function initAnalyticsChart() {
     // console.log('Chart global present:', typeof Chart !== 'undefined');
 
     const chartData = {
-        labels: ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'],
+        labels: ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00', '24:00', '01:00', '02:00', '03:00', '04:00', '05:00', '06:00', '07:00'],
         datasets: [{
             label: 'Sensor A (Dwntwn)',
-            data: [42, 45, 48, 55, 60, 58, 52, 48, 50, 55],
+            data: [42, 45, 48, 55, 60, 58, 52, 48, 50, 55], //aqi data
             borderColor: '#00E396',
             backgroundColor: 'rgba(0, 227, 150, 0.2)',
             borderWidth: 2,
             pointBackgroundColor: '#00E396',
-            tension: 0.4,
+            tension: 2,
             fill: false
         },
-        {
-            label: 'Sensor B (Park)',
-            data: [30, 32, 35, 38, 40, 38, 35, 32, 30, 32],
-            borderColor: '#008FFB',
-            backgroundColor: 'rgba(0, 143, 251, 0.2)',
-            borderWidth: 2,
-            pointBackgroundColor: '#008FFB',
-            tension: 0.4,
-            fill: false
-        },
-        {
-            label: 'Sensor C (Indstryl)',
-            data: [65, 70, 75, 80, 85, 90, 85, 80, 75, 70],
-            borderColor: '#FEB019',
-            backgroundColor: 'rgba(254, 176, 25, 0.2)',
-            borderWidth: 2,
-            pointBackgroundColor: '#FEB019',
-            tension: 0.4,
-            fill: false
-        }
         ]
     };
 

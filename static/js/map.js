@@ -168,9 +168,9 @@ async function updateSensorCountBackend(count) {
 }
 
 
-fetch('/api/manual-db-sync/', {method: 'POST'})
-  .then(r => r.json())
-  .then(d => console.log(d))
+fetch('/api/manual-db-sync/', { method: 'POST' })
+    .then(r => r.json())
+    .then(d => console.log(d))
 
 
 // ============================================================================
@@ -211,26 +211,50 @@ function initSensorWidget() {
         10: { id: 'EG-003', name: 'Commander-in-Chief Road', lat: 13.0910, lng: 80.2498 }
     };
 
-
-    let count = MIN;
-    countEl.textContent = count;
-    const markerStack = {};
-    const markerGroup = L.layerGroup().addTo(map);
-
-    pushMarker(count);
-    
     btnPlus.addEventListener('click', () => {
         if (count >= MAX) return;
         count++;
         countEl.textContent = count;
         pushMarker(count);
+
+        console.log('PLUS clicked → count:', count);
+        updateAllSensorsCount(count);
     });
+
     btnMinus.addEventListener('click', () => {
         if (count <= MIN) return;
         popMarker(count);
         count--;
         countEl.textContent = count;
+
+        console.log('MINUS clicked → count:', count);
+        updateAllSensorsCount(count);
     });
+
+
+
+    let count = MIN;
+    countEl.textContent = count;
+    updateAllSensorsCount(count);
+    const markerStack = {};
+    const markerGroup = L.layerGroup().addTo(map);
+
+    pushMarker(count);
+
+    // btnPlus.addEventListener('click', () => {
+    //     if (count >= MAX) return;
+    //     count++;
+    //     countEl.textContent = count;
+    //     pushMarker(count);
+    // });
+    // btnMinus.addEventListener('click', () => {
+    //     if (count <= MIN) return;
+    //     popMarker(count);
+    //     count--;
+    //     countEl.textContent = count;
+    // });
+
+
 
     /* =========================
        STACK OPERATIONS
@@ -263,6 +287,41 @@ function initSensorWidget() {
     }
 }
 
+function updateAllSensorsCount(count) {
+    console.log('im inside update all sensor count', count)
+    const el = document.getElementById('allSensorsFilter');
+    if (!el) return;
+
+    // preserve the dot span
+    const dot = el.querySelector('.dot');
+
+    el.innerHTML = '';
+    if (dot) el.appendChild(dot);
+
+    el.insertAdjacentText('beforeend', ` ALL SENSORS (${count})`);
+}
+
+
+// btnPlus.addEventListener('click', () => {
+//     if (count >= MAX) return;
+//     count++;
+//     countEl.textContent = count;
+//     pushMarker(count);
+//     console.log(
+//         'im in add event listener and the count is', count
+//     )
+//     updateAllSensorsCount(count);
+// });
+
+// btnMinus.addEventListener('click', () => {
+//     if (count <= MIN) return;
+//     popMarker(count);
+//     count--;
+//     countEl.textContent = count;
+//     updateAllSensorsCount(count);
+// });
+
+
 /* =========================
    TRAFFIC INTENSITY WIDGET
 ========================== */
@@ -286,6 +345,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initSensorWidget();
     initTrafficWidget();
     initPeakHourWidget();
+    updateAllSensorsCount(count);
+
 
     console.groupEnd();
 });

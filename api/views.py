@@ -1020,10 +1020,9 @@ def reset_simulation(request):
         'message': 'Simulation reset'
     })
 
+
 @csrf_exempt
-@require_http_methods(["POST"])
-@csrf_exempt
-@require_http_methods(["POST"])
+@require_http_methods(["POST"]) 
 def set_sensor_count(request):
     """Update the active sensor count for simulation"""
     body = json.loads(request.body)
