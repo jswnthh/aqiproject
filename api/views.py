@@ -24,7 +24,7 @@ from datetime import datetime
 # from .import_json_loop import sync_json_to_database
 
 FILE_PATH = "static/sensor_data.json"   # path to your JSON file
-DELAY = 60                               # 1 minute
+DELAY = 10                               # 1 minute
 
 
 
