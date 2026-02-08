@@ -36,7 +36,7 @@ function initBounds() {
 }
 
 // ============================================================================
-// MAP INIT
+// MAP INIT; sets the inital view, loads tiles, draws boundary, and initializes controls
 // ============================================================================
 
 function initMap() {
@@ -72,7 +72,7 @@ function drawBoundary() {
 }
 
 // ============================================================================
-// TILE LAYERS + THEME SYNC
+// TILE LAYERS + THEME SYNC; loads light/dark tiles based on theme and listens for changes to update accordingly
 // ============================================================================
 
 function loadTiles() {
@@ -114,13 +114,12 @@ function initControls() {
 // ============================================================================
 
 function updateAllSensorsCount(count) {
-    const el = document.getElementById('allSensorsFilter');
+    // it keeps track of the total number of sensors and updates the "ALL SENSORS" filter text accordingly
+    const el = document.getElementById('allSensorsFilter'); 
     if (!el) return;
-
     const dot = el.querySelector('.dot');
     el.innerHTML = '';
     if (dot) el.appendChild(dot);
-
     el.insertAdjacentText('beforeend', ` ALL SENSORS (${count})`);
 }
 
@@ -174,6 +173,8 @@ function pushMarker(index) {
     window.markerStack[index] = marker;
 }
 
+//write functions to cound offline and online sensors here...
+
 function highlightMarker(index) {
     // Remove highlight from all markers
     Object.keys(window.markerStack).forEach(idx => {
@@ -210,7 +211,7 @@ function syncMarkersToCount(newCount) {
         markerGroup = L.layerGroup().addTo(map);
     }
 
-    const current = Object.keys(window.markerStack).length;
+    const current = Object.keys(window.markerStack).length; //tracks markers currently on the map
 
     // ADD markers
     if (newCount > current) {

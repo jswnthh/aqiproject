@@ -44,6 +44,11 @@ function getAQICategory(aqi) {
 }
 
 async function getCSRFToken() {
+/**
+ * Retrieves the CSRF token from browser cookies.
+ * Used for attaching the token to secure POST/PUT/DELETE requests
+ * (commonly required in Django-backed applications).
+ */
     const name = 'csrftoken';
     const cookies = document.cookie ? document.cookie.split(';') : [];
     for (let i = 0; i < cookies.length; i++) {
@@ -56,15 +61,18 @@ async function getCSRFToken() {
 }
 
 function preventDefaults(e) {
+    // Prevent default browser behavior and stop event bubbling
     e.preventDefault();
     e.stopPropagation();
 }
 
 function highlight(e) {
+    // Add visual highlight when a draggable item enters the target area
     e.currentTarget.classList.add('dragover');
 }
 
 function unhighlight(e) {
+     // Remove visual highlight when a draggable item leaves the target area
     e.currentTarget.classList.remove('dragover');
 }
 
@@ -73,9 +81,10 @@ function unhighlight(e) {
 // ============================================================================
 
 async function selectSensor(sensorId, sensorIndex) {
+    // Handle sensor selection: update global state, UI highlights, map view, and load sensor data
     window.selectedSensorId = sensorId;
     console.log('📍 Selected sensor:', sensorId);
-    
+
     // Highlight selected card
     document.querySelectorAll('.sensor-card-wrapper').forEach(wrapper => {
         if (wrapper.dataset.sensorId === sensorId) {
@@ -84,16 +93,16 @@ async function selectSensor(sensorId, sensorIndex) {
             wrapper.classList.remove('selected');
         }
     });
-    
+
     // Update street view immediately with current sensor state
     updateMapStreetView();
-    
+
     // Load comprehensive sensor data
     await loadSensorData(sensorId);
-    
+
     // Update all UI components
     updateAllWidgets();
-    
+
     // Highlight the corresponding map marker
     if (typeof window.highlightMarker === 'function') {
         window.highlightMarker(sensorIndex);
@@ -101,10 +110,11 @@ async function selectSensor(sensorId, sensorIndex) {
 }
 
 async function loadSensorData(sensorId) {
+    // Fetch recent sensor readings and statistics, then store them in global state
     try {
         const response = await fetch(`/api/sensors/${sensorId}/readings/?hours=24&limit=100`);
         const data = await response.json();
-        
+
         if (data.readings && data.readings.length > 0) {
             window.selectedSensorData = {
                 sensorId: sensorId,
@@ -112,13 +122,13 @@ async function loadSensorData(sensorId) {
                 readings: data.readings,
                 stats: data.stats
             };
-            
+
             console.log('✅ Loaded sensor data:', sensorId, window.selectedSensorData);
         } else {
             console.warn('No readings found for sensor:', sensorId);
             window.selectedSensorData = null;
         }
-        
+
     } catch (error) {
         console.error('Error loading sensor data:', error);
         window.selectedSensorData = null;
@@ -133,17 +143,18 @@ window.selectSensor = selectSensor;
 // ============================================================================
 
 function updateAllWidgets() {
+    // update all dashboard widgets using the currently seelcted sensor data
     if (!window.selectedSensorData) {
         console.warn('No sensor data available for update');
         return;
     }
-    
-    updateAnalyticsChart();
-    updatePeakPollutionHours();
-    updateMonthlyAQI();
+
+    updateAnalyticsChart(); 
+    updatePeakPollutionHours(); 
+    updateMonthlyAQI(); 
     updateHeatmap();
     updateMapStreetView();
-    
+
     console.log('✅ All widgets updated');
 }
 
@@ -152,11 +163,12 @@ function updateAllWidgets() {
 // ============================================================================
 
 function updateMapStreetView() {
+    // Update the street-view card and heatmap based on the currently selected sensor
     const streetViewCard = document.querySelector('.street-view-card');
-    if (!streetViewCard) return;
-    
+    if (!streetViewCard) return; // Sanity check; stop running the function if the card element isn't found
+
     console.log('🗺️ Updating street view, selectedSensorId:', window.selectedSensorId);
-    
+
     // If no sensor selected, show default message
     if (!window.selectedSensorId) {
         streetViewCard.innerHTML = `
@@ -170,12 +182,12 @@ function updateMapStreetView() {
                 </div>
             </div>
         `;
-        
+
         // Reset heatmap to show all sensors average
         updateHeatmapFromLiveData();
         return;
     }
-    
+
     // Get sensor info
     let sensorInfo = null;
     for (let key in window.sensors) {
@@ -184,18 +196,18 @@ function updateMapStreetView() {
             break;
         }
     }
-    
+
     if (!sensorInfo) {
         console.error('Sensor info not found for', window.selectedSensorId);
         return;
     }
-    
+
     // Get AQI from sensor state
     const liveData = window.sensorState[window.selectedSensorId] || window.sensorState[sensorInfo.name];
     const aqi = liveData?.aqi ?? 0;
     const color = getAQIColor(aqi);
     const category = getAQICategory(aqi);
-    
+
     // Update the street view card with simplified content
     streetViewCard.innerHTML = `
         <div class="street-view-compact">
@@ -211,10 +223,10 @@ function updateMapStreetView() {
             </div>
         </div>
     `;
-    
+
     // Update heatmap with live data
     updateHeatmapFromLiveData();
-    
+
     console.log('✅ Street view updated with sensor:', window.selectedSensorId, sensorInfo.name);
 }
 
@@ -226,23 +238,26 @@ window.updateMapStreetView = updateMapStreetView;
 // ============================================================================
 
 function updateAnalyticsChart() {
-    if (!analyticsChart || !window.selectedSensorData) return;
+    // Update the analytics line chart using the currently selected sensor’s historical data
     
+
+    if (!analyticsChart || !window.selectedSensorData) return;
+
     const data = window.selectedSensorData;
     const readings = [...data.readings].reverse();
-    
+
     const timestamps = readings.map(r => new Date(r.timestamp));
     const aqiData = readings.map(r => r.air_quality || 0);
     const tempData = readings.map(r => r.temperature || 0);
     const humidityData = readings.map(r => r.humidity || 0);
-    
-    const labels = timestamps.map(t => 
+
+    const labels = timestamps.map(t =>
         t.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     );
-    
+
     const avgAQI = aqiData.reduce((a, b) => a + b, 0) / aqiData.length;
     const color = getAQIColor(avgAQI);
-    
+
     analyticsChart.data.labels = labels;
     analyticsChart.data.datasets = [
         {
@@ -285,7 +300,7 @@ function updateAnalyticsChart() {
             hidden: true
         }
     ];
-    
+
     analyticsChart.options.scales.y1 = {
         type: 'linear',
         display: true,
@@ -297,9 +312,9 @@ function updateAnalyticsChart() {
             color: '#aaa'
         }
     };
-    
+
     analyticsChart.update();
-    
+
     console.log('✅ Analytics chart updated');
 }
 
@@ -310,9 +325,9 @@ function updateAnalyticsChart() {
 function updatePeakPollutionHours() {
     const container = document.querySelector('.peak-bars');
     if (!container || !window.selectedSensorData) return;
-    
+
     const readings = window.selectedSensorData.readings;
-    
+
     const hourlyData = {};
     readings.forEach(r => {
         const hour = new Date(r.timestamp).getHours();
@@ -321,25 +336,25 @@ function updatePeakPollutionHours() {
         }
         hourlyData[hour].push(r.air_quality);
     });
-    
+
     const hourlyAvg = {};
     Object.keys(hourlyData).forEach(hour => {
         const values = hourlyData[hour];
         hourlyAvg[hour] = values.reduce((a, b) => a + b, 0) / values.length;
     });
-    
+
     const sortedHours = Object.entries(hourlyAvg)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5);
-    
+
     container.innerHTML = sortedHours.map(([hour, aqi]) => {
         const percent = Math.min(100, Math.round((aqi / 150) * 100));
         let cls = 'success';
         if (aqi > 50) cls = 'warning';
         if (aqi > 100) cls = 'danger';
-        
+
         const hourFormatted = `${String(hour).padStart(2, '0')}:00`;
-        
+
         return `
             <div class="peak-row">
                 <span class="time-label">${hourFormatted}</span>
@@ -350,7 +365,7 @@ function updatePeakPollutionHours() {
             </div>
         `;
     }).join('');
-    
+
     console.log('✅ Peak pollution hours updated');
 }
 
@@ -361,12 +376,12 @@ function updatePeakPollutionHours() {
 function updateMonthlyAQI() {
     const chart = document.querySelector('.monthly-chart');
     if (!chart || !window.selectedSensorData) return;
-    
+
     const readings = window.selectedSensorData.readings;
     const avgAQI = readings.reduce((sum, r) => sum + r.air_quality, 0) / readings.length;
-    
+
     const months = ['SEP', 'OCT', 'NOV', 'DEC', 'JAN'];
-    
+
     chart.innerHTML = months.map((m, i) => {
         let value;
         if (i === months.length - 1) {
@@ -375,10 +390,10 @@ function updateMonthlyAQI() {
             const variation = (Math.random() - 0.5) * 20;
             value = avgAQI + variation;
         }
-        
+
         const height = Math.min(100, Math.max(10, value));
         const color = getAQIColor(value);
-        
+
         return `
             <div class="month-bar ${i === months.length - 1 ? 'active' : ''}">
                 <div class="bar" style="height:${height}px; background-color: ${color};"></div>
@@ -387,7 +402,7 @@ function updateMonthlyAQI() {
             </div>
         `;
     }).join('');
-    
+
     console.log('✅ Monthly AQI updated');
 }
 
@@ -398,21 +413,21 @@ function updateMonthlyAQI() {
 function updateHeatmap() {
     const grid = document.getElementById('heatmapGrid');
     if (!grid || !window.selectedSensorData) return;
-    
+
     const readings = window.selectedSensorData.readings;
-    
+
     const hourlyPattern = new Array(7).fill(null).map(() => new Array(24).fill(0));
     const hourlyCounts = new Array(7).fill(null).map(() => new Array(24).fill(0));
-    
+
     readings.forEach(r => {
         const date = new Date(r.timestamp);
         const day = date.getDay();
         const hour = date.getHours();
-        
+
         hourlyPattern[day][hour] += r.air_quality;
         hourlyCounts[day][hour]++;
     });
-    
+
     for (let d = 0; d < 7; d++) {
         for (let h = 0; h < 24; h++) {
             if (hourlyCounts[d][h] > 0) {
@@ -422,52 +437,52 @@ function updateHeatmap() {
             }
         }
     }
-    
+
     grid.innerHTML = '';
-    
+
     for (let d = 0; d < 7; d++) {
         for (let h = 0; h < 24; h++) {
             const cell = document.createElement('div');
             cell.className = 'heat-cell';
-            
+
             const aqi = hourlyPattern[d][h];
             const intensity = Math.min(1, aqi / 150);
             const color = getAQIColor(aqi);
-            
+
             cell.style.backgroundColor = color;
             cell.style.opacity = Math.max(0.3, intensity);
-            
+
             const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
             cell.title = `${days[d]} ${h}:00 - AQI: ${Math.round(aqi)}`;
-            
+
             grid.appendChild(cell);
         }
     }
-    
+
     console.log('✅ Heatmap updated');
 }
 
 function updateHeatmapFromLiveData() {
     const grid = document.getElementById('heatmapGrid');
     if (!grid) return;
-    
+
     console.log('🔥 Updating heatmap from live data');
-    
+
     // If we have historical data for selected sensor, use that
     if (window.selectedSensorData && window.selectedSensorData.readings) {
         updateHeatmap();
         return;
     }
-    
+
     // Otherwise, create a simulated pattern based on current live data
     const currentHour = new Date().getHours();
     const currentDay = new Date().getDay();
-    
+
     // Get average AQI from all active sensors
     let avgAQI = 50; // default
     let totalAQI = 0;
     let count = 0;
-    
+
     Object.keys(window.sensorState).forEach(key => {
         const sensor = window.sensorState[key];
         if (sensor.aqi !== undefined) {
@@ -475,22 +490,22 @@ function updateHeatmapFromLiveData() {
             count++;
         }
     });
-    
+
     if (count > 0) {
         avgAQI = totalAQI / count;
     }
-    
+
     // Create a pattern based on typical daily AQI variations
     grid.innerHTML = '';
-    
+
     for (let d = 0; d < 7; d++) {
         for (let h = 0; h < 24; h++) {
             const cell = document.createElement('div');
             cell.className = 'heat-cell';
-            
+
             // Simulate AQI pattern (higher during rush hours)
             let aqi = avgAQI;
-            
+
             // Morning rush (7-9 AM)
             if (h >= 7 && h <= 9) {
                 aqi *= 1.2;
@@ -503,29 +518,29 @@ function updateHeatmapFromLiveData() {
             else if (h >= 22 || h <= 5) {
                 aqi *= 0.7;
             }
-            
+
             // Add some variation based on day
             aqi += (Math.sin(d * 0.5) * 10);
-            
+
             // Highlight current time
             if (d === currentDay && h === currentHour) {
                 aqi = avgAQI; // Use exact current average
                 cell.classList.add('current-time');
             }
-            
+
             const intensity = Math.min(1, aqi / 150);
             const color = getAQIColor(aqi);
-            
+
             cell.style.backgroundColor = color;
             cell.style.opacity = Math.max(0.3, intensity);
-            
+
             const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             cell.title = `${days[d]} ${h}:00 - AQI: ${Math.round(aqi)}`;
-            
+
             grid.appendChild(cell);
         }
     }
-    
+
     console.log('✅ Heatmap updated from live data (avg AQI:', Math.round(avgAQI), ')');
 }
 
@@ -669,7 +684,7 @@ function renderSensorCards(count) {
 
 function updateSensorCardsFromDB() {
     const wrappers = document.querySelectorAll('.sensor-card-wrapper');
-    
+
     console.log('🔄 Updating sensor cards from DB, sensorState:', window.sensorState);
 
     wrappers.forEach(wrapper => {
@@ -680,7 +695,7 @@ function updateSensorCardsFromDB() {
         if (!mapSensor) return;
 
         const liveData = window.sensorState[sensorId] || window.sensorState[mapSensor.name];
-        
+
         console.log(`Updating card ${sensorId}:`, liveData);
 
         const sensor = {
@@ -697,10 +712,10 @@ function updateSensorCardsFromDB() {
     });
 
     bindFlipButtons();
-    
+
     // Dispatch event for map markers to update
     window.dispatchEvent(new CustomEvent('sensorDataUpdated'));
-    
+
     console.log('✅ Sensor cards updated');
 }
 
@@ -830,23 +845,23 @@ async function loadSensorForecast(sensorId) {
     try {
         const response = await fetch(`/api/sensors/${sensorId}/forecast/`);
         const data = await response.json();
-        
+
         if (data.error) {
-            document.querySelector('.forecast-loading').textContent = 
+            document.querySelector('.forecast-loading').textContent =
                 'Insufficient data for forecast';
             return;
         }
-        
+
         document.querySelector('.forecast-loading').style.display = 'none';
         document.querySelector('.analytics-chart-placeholder').style.display = 'block';
-        
+
         const ctx = document.getElementById(`forecastChart-${sensorId}`);
         if (!ctx) return;
-        
+
         const labels = data.forecast.map(f => f.hour);
         const forecastData = data.forecast.map(f => f.predicted_aqi);
         const confidence = data.forecast.map(f => f.confidence);
-        
+
         new Chart(ctx, {
             type: 'line',
             data: {
@@ -873,7 +888,7 @@ async function loadSensorForecast(sensorId) {
                     },
                     tooltip: {
                         callbacks: {
-                            afterLabel: function(context) {
+                            afterLabel: function (context) {
                                 const index = context.dataIndex;
                                 return `Confidence: ${(confidence[index] * 100).toFixed(0)}%`;
                             }
@@ -904,12 +919,12 @@ async function loadSensorForecast(sensorId) {
                 }
             }
         });
-        
+
         console.log('✅ Forecast chart loaded for', sensorId);
-        
+
     } catch (error) {
         console.error('Error loading forecast:', error);
-        document.querySelector('.forecast-loading').textContent = 
+        document.querySelector('.forecast-loading').textContent =
             'Error loading forecast';
     }
 }
@@ -918,10 +933,10 @@ async function loadSensorLogs(sensorId) {
     try {
         const response = await fetch(`/api/sensors/${sensorId}/readings/?limit=10`);
         const data = await response.json();
-        
+
         const logContainer = document.getElementById(`logs-${sensorId}`);
         if (!logContainer) return;
-        
+
         if (!data.readings || data.readings.length === 0) {
             logContainer.innerHTML = `
                 <div class="log-entry">
@@ -930,7 +945,7 @@ async function loadSensorLogs(sensorId) {
             `;
             return;
         }
-        
+
         logContainer.innerHTML = data.readings.map(reading => {
             const time = new Date(reading.timestamp).toLocaleTimeString();
             const status = reading.aqi_category || 'Unknown';
@@ -941,7 +956,7 @@ async function loadSensorLogs(sensorId) {
                 </div>
             `;
         }).join('');
-        
+
     } catch (error) {
         console.error('Error loading sensor logs:', error);
     }
@@ -1359,7 +1374,7 @@ async function fetchSimulatedSensorData() {
         console.log('📊 Fetched sensor data:', window.sensorState);
 
         updateSensorCardsFromDB();
-        
+
         // Update street view if a sensor is selected
         if (window.selectedSensorId) {
             updateMapStreetView();
@@ -1509,27 +1524,27 @@ function updateChartTheme(e) {
 function initCalendar() {
     const calendarGrid = document.querySelector('.calendar-grid');
     if (!calendarGrid) return;
-    
+
     // February 2026 calendar
     const now = new Date(); // February 8, 2026
     const year = now.getFullYear(); // 2026
     const month = now.getMonth(); // 1 (February is month index 1)
     const today = now.getDate(); // 8
-    
+
     // Get first day of month (0 = Sunday, 6 = Saturday)
     // February 1, 2026 is a Sunday (index 0)
     const firstDay = new Date(year, month, 1).getDay();
-    
+
     // Get number of days in month
     // February 2026 has 28 days (not a leap year)
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    
+
     // Get days in previous month (January 2026 has 31 days)
     const daysInPrevMonth = new Date(year, month, 0).getDate();
-    
+
     // Clear existing content
     calendarGrid.innerHTML = '';
-    
+
     // Add day labels
     const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     dayLabels.forEach(label => {
@@ -1538,7 +1553,7 @@ function initCalendar() {
         labelDiv.textContent = label;
         calendarGrid.appendChild(labelDiv);
     });
-    
+
     // Add previous month's trailing days (if any)
     // February 1, 2026 starts on Sunday, so no trailing days needed
     for (let i = firstDay - 1; i >= 0; i--) {
@@ -1547,12 +1562,12 @@ function initCalendar() {
         dayDiv.textContent = daysInPrevMonth - i;
         calendarGrid.appendChild(dayDiv);
     }
-    
+
     // Add current month's days (February 1-28, 2026)
     for (let day = 1; day <= daysInMonth; day++) {
         const dayDiv = document.createElement('div');
         dayDiv.className = 'day';
-        
+
         if (day === today) {
             // February 8, 2026 is TODAY
             dayDiv.classList.add('active-current');
@@ -1560,11 +1575,11 @@ function initCalendar() {
             // Days 1-7 are in the past
             dayDiv.classList.add('active');
         }
-        
+
         dayDiv.textContent = day;
-        
+
         // Add click handler
-        dayDiv.addEventListener('click', function() {
+        dayDiv.addEventListener('click', function () {
             // Remove active-current from all days
             document.querySelectorAll('.day:not(.inactive)').forEach(d => {
                 d.classList.remove('active-current');
@@ -1572,15 +1587,15 @@ function initCalendar() {
             // Add to clicked day
             this.classList.add('active-current');
         });
-        
+
         calendarGrid.appendChild(dayDiv);
     }
-    
+
     // Add next month's leading days to complete the grid
     // We need to fill up to 6 rows × 7 columns = 42 total cells
     const totalCells = calendarGrid.children.length - 7; // Subtract day labels
     const remainingCells = 42 - totalCells - 7; // 6 rows * 7 days - used cells - labels
-    
+
     // March 2026 days (1, 2, 3, etc.)
     for (let day = 1; day <= remainingCells; day++) {
         const dayDiv = document.createElement('div');
@@ -1588,7 +1603,7 @@ function initCalendar() {
         dayDiv.textContent = day;
         calendarGrid.appendChild(dayDiv);
     }
-    
+
     console.log('✅ Calendar initialized - February 2026');
     console.log(`   Today: February ${today}, 2026 (${dayLabels[now.getDay()]})`);
 }
@@ -1772,12 +1787,12 @@ function renderPosts(posts) {
     posts.forEach(p => {
         const card = document.createElement('div');
         card.className = 'blog-card';
-        
+
         let imageHtml = '';
         if (p.image) {
             imageHtml = `<img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.title)}" class="blog-image">`;
         }
-        
+
         card.innerHTML = `
             ${imageHtml}
             <a href="/blog/${p.slug}/" class="blog-title-link">
@@ -1806,8 +1821,8 @@ function initNotifications() {
     });
 
     window.addEventListener('click', (e) => {
-        if (!notificationDropdown.contains(e.target) && 
-            e.target !== notificationBtn && 
+        if (!notificationDropdown.contains(e.target) &&
+            e.target !== notificationBtn &&
             !notificationBtn.contains(e.target)) {
             notificationDropdown.classList.add('hidden');
         }
@@ -1820,10 +1835,10 @@ function initNotifications() {
             updateNotificationBadge();
         });
     }
-    
+
     // Initial render
     renderNotifications();
-    
+
     // Note: startNotificationMonitoring() is now called from terminal sidebar
     // when simulation starts
 }
@@ -1852,7 +1867,7 @@ function renderNotifications() {
 function updateNotificationBadge() {
     const badge = document.getElementById('notifBadge');
     if (!badge) return;
-    
+
     if (notifications.length > 0) {
         badge.classList.remove('hidden');
         badge.textContent = notifications.length > 9 ? '9+' : notifications.length;
@@ -1869,21 +1884,21 @@ function addNotification(title, message, type = 'danger') {
         type: type,
         time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     };
-    
+
     // Add to beginning of array (newest first)
     notifications.unshift(notification);
-    
+
     // Keep only last 10 notifications
     if (notifications.length > 10) {
         notifications = notifications.slice(0, 10);
     }
-    
+
     renderNotifications();
     updateNotificationBadge();
-    
+
     // Show toast notification popup
     showToastNotification(notification);
-    
+
     console.log('📢 Notification added:', title);
 }
 
@@ -1900,7 +1915,7 @@ function showToastNotification(notification) {
         toastContainer.className = 'toast-container';
         document.body.appendChild(toastContainer);
     }
-    
+
     // Create toast element
     const toast = document.createElement('div');
     toast.className = `toast toast-${notification.type}`;
@@ -1917,15 +1932,15 @@ function showToastNotification(notification) {
             <i class="fas fa-times"></i>
         </button>
     `;
-    
+
     // Add to container
     toastContainer.appendChild(toast);
-    
+
     // Animate in
     setTimeout(() => {
         toast.classList.add('toast-show');
     }, 10);
-    
+
     // Auto-remove after 5 seconds
     setTimeout(() => {
         toast.classList.remove('toast-show');
@@ -1935,7 +1950,7 @@ function showToastNotification(notification) {
             }
         }, 300);
     }, 5000);
-    
+
     // Play notification sound (optional)
     playNotificationSound(notification.type);
 }
@@ -1958,10 +1973,10 @@ function playNotificationSound(type) {
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
-        
+
         oscillator.connect(gainNode);
         gainNode.connect(audioContext.destination);
-        
+
         // Different frequencies for different types
         const frequencies = {
             'danger': 800,
@@ -1969,13 +1984,13 @@ function playNotificationSound(type) {
             'success': 400,
             'info': 500
         };
-        
+
         oscillator.frequency.value = frequencies[type] || 500;
         oscillator.type = 'sine';
-        
+
         gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-        
+
         oscillator.start(audioContext.currentTime);
         oscillator.stop(audioContext.currentTime + 0.2);
     } catch (error) {
@@ -1991,14 +2006,14 @@ function playNotificationSound(type) {
 function startNotificationMonitoring() {
     // Stop any existing monitoring
     stopNotificationMonitoring();
-    
+
     // Check sensor AQI levels every 10 seconds
     notificationMonitoringInterval = setInterval(async () => {
         // ✅ CHECK IF SIMULATION IS RUNNING
         try {
             const response = await fetch("/api/simulation_status/");
             const data = await response.json();
-            
+
             // If simulation is not running, skip checking
             if (!data.running) {
                 console.log('⚠️ Simulation stopped, pausing notifications');
@@ -2008,14 +2023,14 @@ function startNotificationMonitoring() {
             console.error('Error checking simulation status:', error);
             return;
         }
-        
+
         if (!window.sensorState) return;
-        
+
         Object.keys(window.sensorState).forEach(sensorId => {
             const sensor = window.sensorState[sensorId];
-            
+
             if (!sensor.aqi) return;
-            
+
             // High AQI Alert (> 100)
             if (sensor.aqi > 100 && !sensor.notified_high) {
                 addNotification(
@@ -2025,7 +2040,7 @@ function startNotificationMonitoring() {
                 );
                 sensor.notified_high = true;
             }
-            
+
             // Very High AQI Alert (> 150)
             if (sensor.aqi > 150 && !sensor.notified_very_high) {
                 addNotification(
@@ -2035,7 +2050,7 @@ function startNotificationMonitoring() {
                 );
                 sensor.notified_very_high = true;
             }
-            
+
             // Reset notification flags when AQI drops below threshold
             if (sensor.aqi <= 100) {
                 sensor.notified_high = false;
@@ -2043,7 +2058,7 @@ function startNotificationMonitoring() {
             }
         });
     }, 10000); // Check every 10 seconds
-    
+
     console.log('✅ Notification monitoring started');
 }
 
@@ -2053,7 +2068,7 @@ function stopNotificationMonitoring() {
         notificationMonitoringInterval = null;
         console.log('⏹️ Notification monitoring stopped');
     }
-    
+
     // Clear notification flags from all sensors
     if (window.sensorState) {
         Object.keys(window.sensorState).forEach(sensorId => {
@@ -2070,16 +2085,16 @@ function stopNotificationMonitoring() {
 // MAKE FUNCTIONS GLOBALLY AVAILABLE FOR MAP.JS
 // ============================================================================
 
-window.updateSidebarForSensor = async function(sensorId) {
+window.updateSidebarForSensor = async function (sensorId) {
     // Not needed - selectSensor handles sidebar updates
 };
 
-window.updateAnalyticsForSensor = async function(sensorId) {
+window.updateAnalyticsForSensor = async function (sensorId) {
     // Not needed - selectSensor handles analytics updates
 };
 
 // Test notification popup (for manual testing)
-window.testNotificationPopup = function() {
+window.testNotificationPopup = function () {
     const testMessages = [
         { title: 'High AQI Alert', message: 'Ormes Road: AQI is 125 (Unhealthy)', type: 'danger' },
         { title: 'Sensor Maintenance', message: 'Halls Road sensor requires calibration', type: 'warning' },
@@ -2103,7 +2118,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initNotifications();
     initTerminalSidebar();
     initSensorCounterButtons();
-    
+
     // Initialize street view with default state
     updateMapStreetView();
 

@@ -1,5 +1,7 @@
 from django.shortcuts import render, get_object_or_404
 from core.models import BlogPost
+
+
 def analytics(request):
     return render(request,"analytics.html")
 
